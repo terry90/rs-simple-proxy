@@ -1,5 +1,5 @@
 [package]
-name = "rs-simple-proxy"
+name = "simple_proxy"
 version = "0.1.0"
 authors = ["Terry Raimondo <terry.raimondo@gmail.com>"]
 
