@@ -11,13 +11,10 @@ use hyper::{Body, Client, Request};
 use std::fmt::Debug;
 use std::time::Instant;
 
-use config::Config;
-
 type BoxFut = Box<Future<Item = hyper::Response<Body>, Error = hyper::Error> + Send>;
 
 pub struct ProxyService {
   client: Client<HttpConnector, Body>,
-  config: Config,
 }
 
 fn convert_uri(uri: &hyper::Uri) -> hyper::Uri {
@@ -78,7 +75,6 @@ impl ProxyService {
   pub fn new() -> Self {
     ProxyService {
       client: Client::new(),
-      config: Config::new(),
     }
   }
 }
