@@ -6,7 +6,7 @@ pub enum MiddlewareError {
   UnknownError,
 }
 
-pub trait Middleware<'a> {
+pub trait Middleware {
   fn before_request(req: Request<Body>) -> Result<Request<Body>, MiddlewareError>;
   fn after_request(req: Request<Body>) -> Result<Request<Body>, MiddlewareError>;
   fn request_failure(req: Request<Body>) -> Result<Request<Body>, MiddlewareError>;

@@ -21,7 +21,7 @@ use std::fmt;
 use proxy::middleware::Middleware;
 use proxy::service::ProxyService;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Environment {
     Production,
     Staging,
@@ -51,31 +51,33 @@ impl std::str::FromStr for Environment {
     }
 }
 
-pub struct SimpleProxy<'a, T: 'a>
+pub struct SimpleProxy<T: 'static>
 where
-    T: Middleware<'a> + Sync + Send,
+    T: Middleware + Send + Sync + Clone,
 {
     port: u16,
     environment: Environment,
-    middlewares: &'a Vec<T>,
+    middlewares: Vec<T>,
 }
 
-impl<'a, T> SimpleProxy<'a, T>
+impl<T: 'static> SimpleProxy<T>
 where
-    T: Middleware<'a> + Sync + Send,
+    T: Middleware + Send + Sync + Clone,
 {
     pub fn new(port: u16, environment: Environment) -> Self {
         SimpleProxy {
             port,
             environment,
-            middlewares: &vec![], // 'a here
+            middlewares: vec![],
         }
     }
 
-    pub fn run(&'a self) {
+    pub fn run(&self) {
         let addr = ([127, 0, 0, 1], self.port).into();
 
-        let proxy = || ProxyService::new(self.middlewares);
+        let middlewares = self.middlewares.clone();
+
+        let proxy = move || ProxyService::new(middlewares.clone());
 
         info!("Running proxy in {} mode", self.environment);
 
@@ -86,7 +88,7 @@ where
         hyper::rt::run(server);
     }
 
-    pub fn add_middleware(&'a self, middleware: T) {
+    pub fn add_middleware(&mut self, middleware: T) {
         self.middlewares.push(middleware)
     }
 }

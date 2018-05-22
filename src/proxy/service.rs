@@ -8,20 +8,19 @@ use hyper::client::connect::HttpConnector;
 use hyper::rt::Future;
 use hyper::service::Service;
 use hyper::{Body, Client, Request};
+use proxy::middleware::Middleware;
 use std::fmt::Debug;
 use std::marker::Sync;
 use std::time::Instant;
 
-use proxy::middleware::Middleware;
-
 type BoxFut = Box<Future<Item = hyper::Response<Body>, Error = hyper::Error> + Send>;
 
-pub struct ProxyService<'a, T: 'a>
+pub struct ProxyService<T>
 where
-  T: Middleware<'a> + Sync + Send,
+  T: Middleware + Send + Sync + Clone,
 {
   client: Client<HttpConnector, Body>,
-  middlewares: &'a Vec<T>,
+  middlewares: Vec<T>,
 }
 
 fn convert_uri(uri: &hyper::Uri) -> hyper::Uri {
@@ -34,7 +33,7 @@ fn convert_uri(uri: &hyper::Uri) -> hyper::Uri {
   hyper::Uri::from_parts(parts).unwrap() // Consider removing unwrap
 }
 
-fn convert_req<T: Debug>(base: hyper::Request<T>) -> hyper::Request<T> {
+fn convert_req<U: Debug>(base: hyper::Request<U>) -> hyper::Request<U> {
   let (mut parts, body) = base.into_parts();
 
   parts.uri = convert_uri(&parts.uri);
@@ -46,16 +45,16 @@ fn convert_req<T: Debug>(base: hyper::Request<T>) -> hyper::Request<T> {
   req
 }
 
-impl<'a, T> Service for ProxyService<'a, T>
+impl<T> Service for ProxyService<T>
 where
-  T: Middleware<'a> + Sync + Send,
+  T: Middleware + Send + Sync + Clone,
 {
   type Error = hyper::Error;
   type Future = BoxFut;
   type ReqBody = Body;
   type ResBody = Body;
 
-  fn call(&'a mut self, req: Request<Self::ReqBody>) -> Self::Future {
+  fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
     let time = Instant::now();
     println!("{:?}", req);
     let req = convert_req(req);
@@ -81,21 +80,21 @@ where
   }
 }
 
-impl<'a, T> ProxyService<'a, T>
+impl<T> ProxyService<T>
 where
-  T: Middleware<'a> + Sync + Send,
+  T: Middleware + Send + Sync + Clone,
 {
-  pub fn new(middlewares: &'a Vec<T>) -> Self {
+  pub fn new(middlewares: Vec<T>) -> Self {
     ProxyService {
       client: Client::new(),
-      middlewares,
+      middlewares: middlewares,
     }
   }
 }
 
-impl<'a, T> IntoFuture for ProxyService<'a, T>
+impl<T> IntoFuture for ProxyService<T>
 where
-  T: Middleware<'a> + Sync + Send,
+  T: Middleware + Send + Sync + Clone,
 {
   type Future = future::FutureResult<Self::Item, Self::Error>;
   type Item = Self;
