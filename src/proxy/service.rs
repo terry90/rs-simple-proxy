@@ -9,12 +9,19 @@ use hyper::rt::Future;
 use hyper::service::Service;
 use hyper::{Body, Client, Request};
 use std::fmt::Debug;
+use std::marker::Sync;
 use std::time::Instant;
+
+use proxy::middleware::Middleware;
 
 type BoxFut = Box<Future<Item = hyper::Response<Body>, Error = hyper::Error> + Send>;
 
-pub struct ProxyService {
+pub struct ProxyService<'a, T: 'a>
+where
+  T: Middleware<'a> + Sync + Send,
+{
   client: Client<HttpConnector, Body>,
+  middlewares: &'a Vec<T>,
 }
 
 fn convert_uri(uri: &hyper::Uri) -> hyper::Uri {
@@ -39,13 +46,16 @@ fn convert_req<T: Debug>(base: hyper::Request<T>) -> hyper::Request<T> {
   req
 }
 
-impl Service for ProxyService {
+impl<'a, T> Service for ProxyService<'a, T>
+where
+  T: Middleware<'a> + Sync + Send,
+{
   type Error = hyper::Error;
   type Future = BoxFut;
   type ReqBody = Body;
   type ResBody = Body;
 
-  fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
+  fn call(&'a mut self, req: Request<Self::ReqBody>) -> Self::Future {
     let time = Instant::now();
     println!("{:?}", req);
     let req = convert_req(req);
@@ -71,15 +81,22 @@ impl Service for ProxyService {
   }
 }
 
-impl ProxyService {
-  pub fn new() -> Self {
+impl<'a, T> ProxyService<'a, T>
+where
+  T: Middleware<'a> + Sync + Send,
+{
+  pub fn new(middlewares: &'a Vec<T>) -> Self {
     ProxyService {
       client: Client::new(),
+      middlewares,
     }
   }
 }
 
-impl IntoFuture for ProxyService {
+impl<'a, T> IntoFuture for ProxyService<'a, T>
+where
+  T: Middleware<'a> + Sync + Send,
+{
   type Future = future::FutureResult<Self::Item, Self::Error>;
   type Item = Self;
   type Error = hyper::Error;

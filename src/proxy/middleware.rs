@@ -1,14 +1,14 @@
-use hyper::Request;
+use hyper::{Body, Request};
 
 #[derive(Fail, Debug)]
-enum MiddlewareError {
+pub enum MiddlewareError {
   #[fail(display = "An unknown error has occurred.")]
   UnknownError,
 }
 
-trait Middleware {
-  fn before_request(req: Request) -> Result<Request, MiddlewareError>;
-  fn after_request(req: Request) -> Result<Request, MiddlewareError>;
-  fn request_failure(req: Request) -> Result<Request, MiddlewareError>;
-  fn request_success(req: Request) -> Result<Request, MiddlewareError>;
+pub trait Middleware<'a> {
+  fn before_request(req: Request<Body>) -> Result<Request<Body>, MiddlewareError>;
+  fn after_request(req: Request<Body>) -> Result<Request<Body>, MiddlewareError>;
+  fn request_failure(req: Request<Body>) -> Result<Request<Body>, MiddlewareError>;
+  fn request_success(req: Request<Body>) -> Result<Request<Body>, MiddlewareError>;
 }
