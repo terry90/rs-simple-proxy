@@ -1,4 +1,4 @@
-use hyper::{Body, Request};
+use hyper::{Body, Error, Request, Response};
 
 #[derive(Fail, Debug)]
 pub enum MiddlewareError {
@@ -7,8 +7,8 @@ pub enum MiddlewareError {
 }
 
 pub trait Middleware {
-  fn before_request(req: Request<Body>) -> Result<Request<Body>, MiddlewareError>;
-  fn after_request(req: Request<Body>) -> Result<Request<Body>, MiddlewareError>;
-  fn request_failure(req: Request<Body>) -> Result<Request<Body>, MiddlewareError>;
-  fn request_success(req: Request<Body>) -> Result<Request<Body>, MiddlewareError>;
+  fn before_request(&mut self, req: &mut Request<Body>) -> Result<(), MiddlewareError>;
+  fn after_request(&mut self) -> Result<(), MiddlewareError>;
+  fn request_failure(&mut self, err: &Error) -> Result<(), MiddlewareError>;
+  fn request_success(&mut self, req: &mut Response<Body>) -> Result<(), MiddlewareError>;
 }

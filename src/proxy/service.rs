@@ -11,16 +11,17 @@ use hyper::{Body, Client, Request};
 use proxy::middleware::Middleware;
 use std::fmt::Debug;
 use std::marker::Sync;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 type BoxFut = Box<Future<Item = hyper::Response<Body>, Error = hyper::Error> + Send>;
 
-pub struct ProxyService<T>
+pub struct ProxyService<T: 'static>
 where
   T: Middleware + Send + Sync + Clone,
 {
   client: Client<HttpConnector, Body>,
-  middlewares: Vec<T>,
+  middlewares: Arc<Mutex<Vec<T>>>,
 }
 
 fn convert_uri(uri: &hyper::Uri) -> hyper::Uri {
@@ -40,12 +41,10 @@ fn convert_req<U: Debug>(base: hyper::Request<U>) -> hyper::Request<U> {
 
   let req = hyper::Request::from_parts(parts, body);
 
-  println!("Req converted to {:?}", req);
-
   req
 }
 
-impl<T> Service for ProxyService<T>
+impl<T: 'static> Service for ProxyService<T>
 where
   T: Middleware + Send + Sync + Clone,
 {
@@ -56,23 +55,42 @@ where
 
   fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
     let time = Instant::now();
-    println!("{:?}", req);
-    let req = convert_req(req);
+    let mut req = convert_req(req);
+
+    let mws_failure = Arc::clone(&self.middlewares);
+    let mws_success = Arc::clone(&self.middlewares);
+
+    for mw in self.middlewares.lock().unwrap().iter_mut() {
+      mw.before_request(&mut req);
+    }
 
     let res = self
       .client
       .request(req)
       .map_err(move |err| {
-        eprintln!("\n!!--!!\n{:?}\n!!--!!\n", err);
-        if err.is_user() {};
+        error!("{:?}", err);
+
+        for mw in mws_failure.lock().unwrap().iter_mut() {
+          mw.request_failure(&err);
+        }
+        for mw in mws_failure.lock().unwrap().iter_mut() {
+          mw.after_request();
+        }
+
         err
       })
-      .map(move |res| {
-        println!("\n--\n{:?}\n--\n", res);
+      .map(move |mut res| {
         let diff =
           f64::from(Instant::now().duration_since(time).subsec_nanos()) / f64::from(1_000_000);
         let diff = format!("{:.3}", diff);
-        println!("{}ms", diff);
+        info!("Request took {}ms", diff);
+
+        for mw in mws_success.lock().unwrap().iter_mut() {
+          mw.request_success(&mut res);
+        }
+        for mw in mws_success.lock().unwrap().iter_mut() {
+          mw.after_request();
+        }
         res
       });
 
@@ -80,19 +98,19 @@ where
   }
 }
 
-impl<T> ProxyService<T>
+impl<T: 'static> ProxyService<T>
 where
   T: Middleware + Send + Sync + Clone,
 {
   pub fn new(middlewares: Vec<T>) -> Self {
     ProxyService {
       client: Client::new(),
-      middlewares: middlewares,
+      middlewares: Arc::new(Mutex::new(middlewares)),
     }
   }
 }
 
-impl<T> IntoFuture for ProxyService<T>
+impl<T: 'static> IntoFuture for ProxyService<T>
 where
   T: Middleware + Send + Sync + Clone,
 {

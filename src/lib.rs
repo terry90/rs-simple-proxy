@@ -21,7 +21,7 @@ use std::fmt;
 use proxy::middleware::Middleware;
 use proxy::service::ProxyService;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Environment {
     Production,
     Staging,
