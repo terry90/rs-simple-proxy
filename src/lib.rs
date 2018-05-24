@@ -23,6 +23,8 @@ use std::sync::{Arc, Mutex};
 use proxy::middleware::Middleware;
 use proxy::service::ProxyService;
 
+type Middlewares = Arc<Mutex<Vec<Box<Middleware + Send + Sync>>>>;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Environment {
     Production,
@@ -56,7 +58,7 @@ impl std::str::FromStr for Environment {
 pub struct SimpleProxy {
     port: u16,
     environment: Environment,
-    middlewares: Arc<Mutex<Vec<Box<Middleware + Send + Sync>>>>,
+    middlewares: Middlewares,
 }
 
 impl SimpleProxy {

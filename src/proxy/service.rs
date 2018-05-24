@@ -14,11 +14,13 @@ use std::marker::Sync;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
+use Middlewares;
+
 type BoxFut = Box<Future<Item = hyper::Response<Body>, Error = hyper::Error> + Send>;
 
 pub struct ProxyService {
   client: Client<HttpConnector, Body>,
-  middlewares: Arc<Mutex<Vec<Box<Middleware + Send + Sync>>>>,
+  middlewares: Middlewares,
 }
 
 fn convert_uri(uri: &hyper::Uri) -> hyper::Uri {
@@ -88,7 +90,7 @@ impl Service for ProxyService {
 }
 
 impl ProxyService {
-  pub fn new(middlewares: Arc<Mutex<Vec<Box<Middleware + Send + Sync>>>>) -> Self {
+  pub fn new(middlewares: Middlewares) -> Self {
     ProxyService {
       client: Client::new(),
       middlewares: middlewares,
