@@ -7,19 +7,29 @@ pub enum MiddlewareError {
 }
 
 pub trait Middleware {
-  fn before_request(&mut self, req: &mut Request<Body>) -> Result<(), MiddlewareError> {
+  fn get_name(&self) -> &String;
+
+  fn before_request(
+    &mut self,
+    _req: &mut Request<Body>,
+    _req_id: u64,
+  ) -> Result<(), MiddlewareError> {
     Ok(())
   }
 
-  fn after_request(&mut self) -> Result<(), MiddlewareError> {
+  fn after_request(&mut self, _req_id: u64) -> Result<(), MiddlewareError> {
     Ok(())
   }
 
-  fn request_failure(&mut self, err: &Error) -> Result<(), MiddlewareError> {
+  fn request_failure(&mut self, _err: &Error, _req_id: u64) -> Result<(), MiddlewareError> {
     Ok(())
   }
 
-  fn request_success(&mut self, req: &mut Response<Body>) -> Result<(), MiddlewareError> {
+  fn request_success(
+    &mut self,
+    _req: &mut Response<Body>,
+    _req_id: u64,
+  ) -> Result<(), MiddlewareError> {
     Ok(())
   }
 }

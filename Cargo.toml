@@ -2,6 +2,8 @@
 name    = "simple_proxy"
 version = "0.1.0"
 authors = ["Terry Raimondo <terry.raimondo@gmail.com>"]
+description = "Simple proxy with middlewares, easy to customize, easy to use."
+license = "Apache-2.0"
 
 [features]
 routing = ["regex"]
@@ -12,7 +14,9 @@ http           = "0.1.5"
 failure        = "0.1.1"
 failure_derive = "0.1.1"
 log            = "0.4.1"
+chrono         = "0.4.2"
 regex          = { version = "1.0.0",  optional = true }
+rand           = "0.5.0"
 
 [dependencies.hyper]
 git = "https://github.com/hyperium/hyper"

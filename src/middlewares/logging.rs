@@ -1,46 +1,56 @@
-use hyper::{Body, Error, Request, Response};
-use std::time::Instant;
+use chrono::{DateTime, Utc};
+use hyper::{Body, Request, Response};
+use std::collections::HashMap;
 
 use proxy::middleware::{Middleware, MiddlewareError};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Logging {
-  pub started_at: Instant,
+  start_time_queue: HashMap<u64, DateTime<Utc>>,
+  name: String,
 }
 
 impl Middleware for Logging {
-  fn before_request(&mut self, req: &mut Request<Body>) -> Result<(), MiddlewareError> {
-    debug!("Starting request to {}", req.uri());
-    self.started_at = Instant::now();
+  fn get_name(&self) -> &String {
+    &self.name
+  }
+
+  fn before_request(
+    &mut self,
+    req: &mut Request<Body>,
+    req_id: u64,
+  ) -> Result<(), MiddlewareError> {
+    info!(
+      "[{}] Starting request to {}",
+      &req_id.to_string()[..6],
+      req.uri()
+    );
+    self.start_time_queue.insert(req_id, Utc::now());
     Ok(())
   }
 
-  fn after_request(&mut self) -> Result<(), MiddlewareError> {
-    Ok(())
-  }
+  fn request_success(
+    &mut self,
+    _res: &mut Response<Body>,
+    req_id: u64,
+  ) -> Result<(), MiddlewareError> {
+    let start_time = self.start_time_queue.remove(&req_id).unwrap(); // TODO avoid panic
 
-  fn request_failure(&mut self, err: &Error) -> Result<(), MiddlewareError> {
-    Ok(())
-  }
+    info!(
+      "[{}] Request took {}ms",
+      &req_id.to_string()[..6],
+      (Utc::now() - start_time).num_milliseconds()
+    );
 
-  fn request_success(&mut self, req: &mut Response<Body>) -> Result<(), MiddlewareError> {
-    let duration = Instant::now().duration_since(self.started_at);
-
-    let subsec_diff = f64::from(duration.subsec_nanos()) / f64::from(1_000_000);
-    let diff = subsec_diff + f64::from(duration.as_secs() as u32) * f64::from(1000);
-
-    let diff = format!("{:.3}", diff);
-
-    info!("Request took {}ms", diff);
     Ok(())
   }
 }
 
 impl Logging {
   pub fn new() -> Self {
-    warn!("New instance of logging mw");
     Logging {
-      started_at: Instant::now(),
+      start_time_queue: HashMap::new(),
+      name: String::from("Logging"),
     }
   }
 }

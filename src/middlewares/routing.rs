@@ -9,6 +9,7 @@ where
   T: RoutingConfig,
 {
   config: T,
+  name: String,
 }
 
 #[derive(Debug, Clone)]
@@ -24,23 +25,31 @@ pub trait RoutingConfig {
 }
 
 impl<T: RoutingConfig> Middleware for Routing<T> {
-  fn before_request(&mut self, req: &mut Request<Body>) -> Result<(), MiddlewareError> {
-    debug!("before_request");
+  fn get_name(&self) -> &String {
+    &self.name
+  }
+
+  fn before_request(
+    &mut self,
+    _req: &mut Request<Body>,
+    _req_id: u64,
+  ) -> Result<(), MiddlewareError> {
     Err(MiddlewareError::UnknownError)
   }
 
-  fn after_request(&mut self) -> Result<(), MiddlewareError> {
-    debug!("after_request");
+  fn after_request(&mut self, _req_id: u64) -> Result<(), MiddlewareError> {
     Err(MiddlewareError::UnknownError)
   }
 
-  fn request_failure(&mut self, err: &Error) -> Result<(), MiddlewareError> {
-    debug!("request_failure");
+  fn request_failure(&mut self, _err: &Error, _req_id: u64) -> Result<(), MiddlewareError> {
     Err(MiddlewareError::UnknownError)
   }
 
-  fn request_success(&mut self, req: &mut Response<Body>) -> Result<(), MiddlewareError> {
-    debug!("request_success");
+  fn request_success(
+    &mut self,
+    _req: &mut Response<Body>,
+    _req_id: u64,
+  ) -> Result<(), MiddlewareError> {
     Err(MiddlewareError::UnknownError)
   }
 }
@@ -50,7 +59,9 @@ where
   T: RoutingConfig + Debug,
 {
   pub fn new(config: T) -> Self {
-    info!("{:?}", config);
-    Routing { config }
+    Routing {
+      config,
+      name: String::from("Routing"),
+    }
   }
 }

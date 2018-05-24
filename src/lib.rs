@@ -7,10 +7,11 @@ extern crate hyper;
 // extern crate failure_derive;
 #[macro_use]
 extern crate log;
-
 #[macro_use]
 extern crate failure_derive;
+extern crate chrono;
 extern crate failure;
+extern crate rand;
 
 pub mod middlewares;
 pub mod proxy;
@@ -87,6 +88,7 @@ impl SimpleProxy {
     }
 
     pub fn add_middleware(&mut self, middleware: Box<Middleware + Send + Sync>) {
+        info!("Middleware [{}] added !", middleware.get_name());
         self.middlewares.lock().unwrap().push(middleware)
     }
 }
