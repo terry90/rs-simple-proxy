@@ -16,16 +16,13 @@ use std::time::Instant;
 
 type BoxFut = Box<Future<Item = hyper::Response<Body>, Error = hyper::Error> + Send>;
 
-pub struct ProxyService<T: 'static>
-where
-  T: Middleware + Send + Sync + Clone,
-{
+pub struct ProxyService {
   client: Client<HttpConnector, Body>,
-  middlewares: Arc<Mutex<Vec<T>>>,
+  middlewares: Arc<Mutex<Vec<Box<Middleware + Send + Sync>>>>,
 }
 
 fn convert_uri(uri: &hyper::Uri) -> hyper::Uri {
-  let base: hyper::Uri = "http://localhost:3000".parse().unwrap();
+  let base: hyper::Uri = "http://localhost:4567".parse().unwrap();
   let mut parts: http::uri::Parts = base.into();
   if let Some(path_and_query) = uri.path_and_query() {
     parts.path_and_query = Some(path_and_query.clone());
@@ -44,10 +41,7 @@ fn convert_req<U: Debug>(base: hyper::Request<U>) -> hyper::Request<U> {
   req
 }
 
-impl<T: 'static> Service for ProxyService<T>
-where
-  T: Middleware + Send + Sync + Clone,
-{
+impl Service for ProxyService {
   type Error = hyper::Error;
   type Future = BoxFut;
   type ReqBody = Body;
@@ -80,11 +74,6 @@ where
         err
       })
       .map(move |mut res| {
-        let diff =
-          f64::from(Instant::now().duration_since(time).subsec_nanos()) / f64::from(1_000_000);
-        let diff = format!("{:.3}", diff);
-        info!("Request took {}ms", diff);
-
         for mw in mws_success.lock().unwrap().iter_mut() {
           mw.request_success(&mut res);
         }
@@ -98,22 +87,16 @@ where
   }
 }
 
-impl<T: 'static> ProxyService<T>
-where
-  T: Middleware + Send + Sync + Clone,
-{
-  pub fn new(middlewares: Vec<T>) -> Self {
+impl ProxyService {
+  pub fn new(middlewares: Arc<Mutex<Vec<Box<Middleware + Send + Sync>>>>) -> Self {
     ProxyService {
       client: Client::new(),
-      middlewares: Arc::new(Mutex::new(middlewares)),
+      middlewares: middlewares,
     }
   }
 }
 
-impl<T: 'static> IntoFuture for ProxyService<T>
-where
-  T: Middleware + Send + Sync + Clone,
-{
+impl IntoFuture for ProxyService {
   type Future = future::FutureResult<Self::Item, Self::Error>;
   type Item = Self;
   type Error = hyper::Error;

@@ -18,6 +18,7 @@ pub mod proxy;
 use futures::future::Future;
 use hyper::Server;
 use std::fmt;
+use std::sync::{Arc, Mutex};
 
 use proxy::middleware::Middleware;
 use proxy::service::ProxyService;
@@ -52,24 +53,18 @@ impl std::str::FromStr for Environment {
     }
 }
 
-pub struct SimpleProxy<T: 'static>
-where
-    T: Middleware + Send + Sync + Clone,
-{
+pub struct SimpleProxy {
     port: u16,
     environment: Environment,
-    middlewares: Vec<T>,
+    middlewares: Arc<Mutex<Vec<Box<Middleware + Send + Sync>>>>,
 }
 
-impl<T: 'static> SimpleProxy<T>
-where
-    T: Middleware + Send + Sync + Clone,
-{
+impl SimpleProxy {
     pub fn new(port: u16, environment: Environment) -> Self {
         SimpleProxy {
             port,
             environment,
-            middlewares: vec![],
+            middlewares: Arc::new(Mutex::new(vec![])),
         }
     }
 
@@ -89,7 +84,7 @@ where
         hyper::rt::run(server);
     }
 
-    pub fn add_middleware(&mut self, middleware: T) {
-        self.middlewares.push(middleware)
+    pub fn add_middleware(&mut self, middleware: Box<Middleware + Send + Sync>) {
+        self.middlewares.lock().unwrap().push(middleware)
     }
 }
