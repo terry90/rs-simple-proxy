@@ -12,6 +12,7 @@ extern crate log;
 extern crate failure_derive;
 extern crate failure;
 
+pub mod middlewares;
 pub mod proxy;
 
 use futures::future::Future;
