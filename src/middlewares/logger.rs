@@ -29,11 +29,7 @@ impl Middleware for Logger {
     Ok(())
   }
 
-  fn request_success(
-    &mut self,
-    _res: &mut Response<Body>,
-    req_id: u64,
-  ) -> Result<(), MiddlewareError> {
+  fn after_request(&mut self, req_id: u64) -> Result<(), MiddlewareError> {
     let start_time = self.start_time_queue.remove(&req_id).unwrap(); // TODO avoid panic
 
     info!(

@@ -25,24 +25,6 @@ pub struct ProxyService {
   rng: SmallRng,
 }
 
-fn convert_uri(uri: &hyper::Uri) -> hyper::Uri {
-  let base: hyper::Uri = "http://localhost:4567".parse().unwrap();
-  let mut parts: http::uri::Parts = base.into();
-  if let Some(path_and_query) = uri.path_and_query() {
-    parts.path_and_query = Some(path_and_query.clone());
-  }
-
-  hyper::Uri::from_parts(parts).unwrap() // Consider removing unwrap
-}
-
-fn convert_req<U: Debug>(base: hyper::Request<U>) -> hyper::Request<U> {
-  let (mut parts, body) = base.into_parts();
-
-  parts.uri = convert_uri(&parts.uri);
-
-  hyper::Request::from_parts(parts, body)
-}
-
 impl Service for ProxyService {
   type Error = hyper::Error;
   type Future = BoxFut;
@@ -50,12 +32,12 @@ impl Service for ProxyService {
   type ResBody = Body;
 
   fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
-    let mut req = convert_req(req);
+    let (parts, body) = req.into_parts();
+    let mut req = Request::from_parts(parts, body);
 
     let mws_failure = Arc::clone(&self.middlewares);
     let mws_success = Arc::clone(&self.middlewares);
 
-    // let req_id = rng.sample_iter(&Alphanumeric).take(7).collect();
     let req_id = self.rng.next_u64();
 
     for mw in self.middlewares.lock().unwrap().iter_mut() {

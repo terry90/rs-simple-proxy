@@ -1,17 +1,15 @@
 extern crate futures;
 extern crate hyper;
-// #[macro_use]
-// extern crate clap;
-// extern crate failure;
-// #[macro_use]
-// extern crate failure_derive;
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate failure_derive;
 extern crate chrono;
 extern crate failure;
+extern crate http;
 extern crate rand;
+#[cfg(feature = "router")]
+extern crate regex;
 
 pub mod middlewares;
 pub mod proxy;
@@ -74,6 +72,7 @@ impl SimpleProxy {
     pub fn run(&self) {
         let addr = ([127, 0, 0, 1], self.port).into();
 
+        // TODO ask why double clone @ workshop
         let middlewares = self.middlewares.clone();
 
         let proxy = move || ProxyService::new(middlewares.clone());
