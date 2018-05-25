@@ -5,12 +5,12 @@ use std::collections::HashMap;
 use proxy::middleware::{Middleware, MiddlewareError};
 
 #[derive(Clone, Default)]
-pub struct Logging {
+pub struct Logger {
   start_time_queue: HashMap<u64, DateTime<Utc>>,
   name: String,
 }
 
-impl Middleware for Logging {
+impl Middleware for Logger {
   fn get_name(&self) -> &String {
     &self.name
   }
@@ -46,11 +46,11 @@ impl Middleware for Logging {
   }
 }
 
-impl Logging {
+impl Logger {
   pub fn new() -> Self {
-    Logging {
+    Logger {
       start_time_queue: HashMap::new(),
-      name: String::from("Logging"),
+      name: String::from("Logger"),
     }
   }
 }

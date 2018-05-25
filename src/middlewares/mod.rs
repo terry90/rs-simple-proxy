@@ -1,3 +1,3 @@
-pub mod logging;
-#[cfg(feature = "routing")]
-pub mod routing;
+pub mod logger;
+#[cfg(feature = "router")]
+pub mod router;

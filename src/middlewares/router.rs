@@ -4,27 +4,27 @@ use std::fmt::Debug;
 use proxy::middleware::{Middleware, MiddlewareError};
 
 #[derive(Clone)]
-pub struct Routing<T>
+pub struct Router<T>
 where
-  T: RoutingConfig,
+  T: RouterConfig,
 {
   config: T,
   name: String,
 }
 
 #[derive(Debug, Clone)]
-pub struct RoutingRule {
+pub struct RouterRule {
   pub from: String,
   pub to: String,
 }
 
-pub type RoutingRules = Vec<RoutingRule>;
+pub type RouterRules = Vec<RouterRule>;
 
-pub trait RoutingConfig {
-  fn get_routing_rules(&self) -> &RoutingRules;
+pub trait RouterConfig {
+  fn get_router_rules(&self) -> &RouterRules;
 }
 
-impl<T: RoutingConfig> Middleware for Routing<T> {
+impl<T: RouterConfig> Middleware for Router<T> {
   fn get_name(&self) -> &String {
     &self.name
   }
@@ -54,14 +54,14 @@ impl<T: RoutingConfig> Middleware for Routing<T> {
   }
 }
 
-impl<T> Routing<T>
+impl<T> Router<T>
 where
-  T: RoutingConfig + Debug,
+  T: RouterConfig + Debug,
 {
   pub fn new(config: T) -> Self {
-    Routing {
+    Router {
       config,
-      name: String::from("Routing"),
+      name: String::from("Router"),
     }
   }
 }

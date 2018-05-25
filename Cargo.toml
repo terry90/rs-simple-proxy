@@ -6,7 +6,7 @@ description = "Simple proxy with middlewares, easy to customize, easy to use."
 license = "Apache-2.0"
 
 [features]
-routing = ["regex"]
+router = ["regex"]
 
 [dependencies]
 futures        = "0.1.21"
