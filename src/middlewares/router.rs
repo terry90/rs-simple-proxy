@@ -91,7 +91,7 @@ impl<T: RouterConfig> Middleware for Router<T> {
 
     for ref rule in rules {
       debug!("Trying to convert {} to {}", &rule.from, &rule.to);
-      let re = /*Regex::new(*/&rule.from; //).unwrap(); // TODO handle error
+      let re = &rule.from;
 
       if re.is_match(&host) {
         let new_host = re.replace(&host, rule.to.as_str());
