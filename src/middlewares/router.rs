@@ -4,7 +4,7 @@ use hyper::{Body, Error, Request, Response};
 use regex::{escape, Regex};
 use std::fmt::Debug;
 
-use proxy::middleware::{Middleware, MiddlewareError};
+use proxy::middleware::{Middleware, MiddlewareError, MiddlewareResult, MiddlewareResult::Next};
 
 #[derive(Clone)]
 pub struct Router<T>
@@ -26,24 +26,6 @@ pub type RouterRules = Vec<RouterRule>;
 pub trait RouterConfig {
   fn get_router_rules(&self) -> &RouterRules;
 }
-
-// fn convert_uri(uri: &hyper::Uri) -> hyper::Uri {
-//   let base: hyper::Uri = "http://localhost:4567".parse().unwrap();
-//   let mut parts: http::uri::Parts = base.into();
-//   if let Some(path_and_query) = uri.path_and_query() {
-//     parts.path_and_query = Some(path_and_query.clone());
-//   }
-
-//   hyper::Uri::from_parts(parts).unwrap() // Consider removing unwrap
-// }
-
-// fn convert_req<U: Debug>(base: hyper::Request<U>) -> hyper::Request<U> {
-//   let (mut parts, body) = base.into_parts();
-
-//   parts.uri = convert_uri(&parts.uri);
-
-//   hyper::Request::from_parts(parts, body)
-// }
 
 fn get_host(req: &mut Request<Body>) -> String {
   let uri = req.uri();
@@ -83,7 +65,7 @@ impl<T: RouterConfig> Middleware for Router<T> {
     &mut self,
     req: &mut Request<Body>,
     _req_id: u64,
-  ) -> Result<(), MiddlewareError> {
+  ) -> Result<MiddlewareResult, MiddlewareError> {
     let rules = self.config.get_router_rules();
 
     let mut host = get_host(req);
@@ -101,7 +83,7 @@ impl<T: RouterConfig> Middleware for Router<T> {
       }
     }
 
-    Ok(())
+    Ok(Next)
   }
 }
 

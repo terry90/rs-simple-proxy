@@ -15,6 +15,7 @@ use rand::prelude::*;
 use rand::rngs::SmallRng;
 use rand::FromEntropy;
 
+use proxy::middleware::MiddlewareResult::*;
 use Middlewares;
 
 type BoxFut = Box<Future<Item = hyper::Response<Body>, Error = hyper::Error> + Send>;
@@ -41,12 +42,10 @@ impl Service for ProxyService {
     let req_id = self.rng.next_u64();
 
     for mw in self.middlewares.lock().unwrap().iter_mut() {
-      if let Err(err) = mw.before_request(&mut req, req_id) {
-        error!(
-          "[{}] Error during request_failure callback: {:?}",
-          mw.get_name(),
-          err
-        );
+      match mw.before_request(&mut req, req_id) {
+        Err(err) => error!("[{}] before_request errored: {:?}", mw.get_name(), err),
+        Ok(RespondWith(response)) => return Box::new(future::ok(response)),
+        Ok(Next) => (),
       }
     }
 
@@ -55,42 +54,36 @@ impl Service for ProxyService {
       .request(req)
       .map_err(move |err| {
         for mw in mws_failure.lock().unwrap().iter_mut() {
-          if let Err(err) = mw.request_failure(&err, req_id) {
-            error!(
-              "[{}] Error during request_failure callback: {:?}",
-              mw.get_name(),
-              err
-            );
+          match mw.request_failure(&err, req_id) {
+            Err(err) => error!("[{}] request_failure errored: {:?}", mw.get_name(), err),
+            // Ok(RespondWith(response)) => Box::new(response),
+            _ => (),
+            // Ok(Next) => (),
           }
         }
         for mw in mws_failure.lock().unwrap().iter_mut() {
-          if let Err(err) = mw.after_request(req_id) {
-            error!(
-              "[{}] Error during after_request callback: {:?}",
-              mw.get_name(),
-              err
-            );
+          match mw.after_request(req_id) {
+            Err(err) => error!("[{}] after_request errored: {:?}", mw.get_name(), err),
+            // Ok(RespondWith(response)) => Box::new(response),
+            _ => (),
+            // Ok(Next) => (),
           }
         }
         err
       })
       .map(move |mut res| {
         for mw in mws_success.lock().unwrap().iter_mut() {
-          if let Err(err) = mw.request_success(&mut res, req_id) {
-            error!(
-              "[{}] Error during request_success callback: {:?}",
-              mw.get_name(),
-              err
-            );
+          match mw.request_success(&mut res, req_id) {
+            Err(err) => error!("[{}] request_success errored: {:?}", mw.get_name(), err),
+            Ok(RespondWith(response)) => return response,
+            Ok(Next) => (),
           }
         }
         for mw in mws_success.lock().unwrap().iter_mut() {
-          if let Err(err) = mw.after_request(req_id) {
-            error!(
-              "[{}] Error during after_success callback: {:?}",
-              mw.get_name(),
-              err
-            );
+          match mw.after_request(req_id) {
+            Err(err) => error!("[{}] after_request errored: {:?}", mw.get_name(), err),
+            Ok(RespondWith(response)) => return response,
+            Ok(Next) => (),
           }
         }
         res
