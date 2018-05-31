@@ -50,3 +50,19 @@ impl Logger {
     }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::Logger;
+  use chrono::{DateTime, Utc};
+  use std::collections::HashMap;
+
+  #[test]
+  fn new_creates_new_logger() {
+    let logger = Logger::new();
+    let expected: HashMap<u64, DateTime<Utc>> = HashMap::new();
+
+    assert_eq!(String::from("Logger"), logger.name);
+    assert_eq!(expected, logger.start_time_queue);
+  }
+}

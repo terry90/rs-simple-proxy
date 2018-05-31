@@ -24,7 +24,7 @@ use proxy::service::ProxyService;
 
 type Middlewares = Arc<Mutex<Vec<Box<Middleware + Send + Sync>>>>;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Environment {
     Production,
     Staging,
@@ -89,5 +89,31 @@ impl SimpleProxy {
     pub fn add_middleware(&mut self, middleware: Box<Middleware + Send + Sync>) {
         info!("Middleware [{}] added !", middleware.get_name());
         self.middlewares.lock().unwrap().push(middleware)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::middlewares::logger::Logger;
+    use super::Environment;
+    use super::SimpleProxy;
+
+    #[test]
+    fn new_creates_new_simple_proxy() {
+        let proxy = SimpleProxy::new(94, Environment::Production);
+
+        assert_eq!(94, proxy.port);
+        assert_eq!(Environment::Production, proxy.environment);
+        assert_eq!(0, proxy.middlewares.lock().unwrap().len());
+    }
+
+    #[test]
+    fn add_middleware_adds_a_middleware() {
+        let mut proxy = SimpleProxy::new(94, Environment::Production);
+        let middleware = Box::new(Logger::new());
+
+        assert_eq!(0, proxy.middlewares.lock().unwrap().len());
+        proxy.add_middleware(middleware);
+        assert_eq!(1, proxy.middlewares.lock().unwrap().len());
     }
 }
