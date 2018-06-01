@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use hyper::{Body, Request, Response};
 use std::collections::HashMap;
 
-use proxy::middleware::{Middleware, MiddlewareError};
+use proxy::middleware::{Middleware, MiddlewareError, MiddlewareResult, MiddlewareResult::Next};
 
 #[derive(Clone, Default)]
 pub struct Logger {
@@ -19,17 +19,17 @@ impl Middleware for Logger {
     &mut self,
     req: &mut Request<Body>,
     req_id: u64,
-  ) -> Result<(), MiddlewareError> {
+  ) -> Result<MiddlewareResult, MiddlewareError> {
     info!(
       "[{}] Starting request to {}",
       &req_id.to_string()[..6],
       req.uri()
     );
     self.start_time_queue.insert(req_id, Utc::now());
-    Ok(())
+    Ok(Next)
   }
 
-  fn after_request(&mut self, req_id: u64) -> Result<(), MiddlewareError> {
+  fn after_request(&mut self, req_id: u64) -> Result<MiddlewareResult, MiddlewareError> {
     let start_time = self.start_time_queue.remove(&req_id).unwrap(); // TODO avoid panic
 
     info!(
@@ -37,8 +37,7 @@ impl Middleware for Logger {
       &req_id.to_string()[..6],
       (Utc::now() - start_time).num_milliseconds()
     );
-
-    Ok(())
+    Ok(Next)
   }
 }
 
