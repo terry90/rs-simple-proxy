@@ -100,16 +100,16 @@ mod tests {
 
     #[test]
     fn new_creates_new_simple_proxy() {
-        let proxy = SimpleProxy::new(94, Environment::Production);
+        let proxy = SimpleProxy::new(894, Environment::Production);
 
-        assert_eq!(94, proxy.port);
+        assert_eq!(894, proxy.port);
         assert_eq!(Environment::Production, proxy.environment);
         assert_eq!(0, proxy.middlewares.lock().unwrap().len());
     }
 
     #[test]
     fn add_middleware_adds_a_middleware() {
-        let mut proxy = SimpleProxy::new(94, Environment::Production);
+        let mut proxy = SimpleProxy::new(894, Environment::Production);
         let middleware = Box::new(Logger::new());
 
         assert_eq!(0, proxy.middlewares.lock().unwrap().len());

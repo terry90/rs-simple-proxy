@@ -8,7 +8,6 @@ use hyper::client::connect::HttpConnector;
 use hyper::rt::Future;
 use hyper::service::Service;
 use hyper::{Body, Client, Request};
-use std::fmt::Debug;
 use std::sync::Arc;
 
 use rand::prelude::*;

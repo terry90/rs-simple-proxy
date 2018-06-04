@@ -6,6 +6,7 @@ pub enum MiddlewareError {
   UnknownError,
 }
 
+#[derive(Debug)]
 pub enum MiddlewareResult {
   RespondWith(Response<Body>),
   Next,
@@ -48,7 +49,8 @@ pub trait Middleware {
 #[cfg(test)]
 mod tests {
   use super::Middleware;
-  use hyper::{Body, Error, Request, Response};
+  use super::MiddlewareResult;
+  use hyper::{Body, Request, Response};
 
   struct FakeMiddleware {
     name: String,
@@ -61,24 +63,27 @@ mod tests {
   }
 
   #[test]
-  fn before_request_returns_ok() {
+  fn before_request_returns_ok_next() {
     let mut middleware = FakeMiddleware {
       name: String::from("Fake Middleware"),
     };
 
-    assert_eq!(
-      middleware.before_request(&mut Request::new(Body::empty()), 0),
-      Ok(())
-    );
+    match middleware.before_request(&mut Request::new(Body::empty()), 0) {
+      Ok(MiddlewareResult::Next) => (),
+      x => panic!("before_request returned {:?} instead of Ok(Next)", x),
+    }
   }
 
   #[test]
-  fn after_request_returns_ok() {
+  fn after_request_returns_ok_next() {
     let mut middleware = FakeMiddleware {
       name: String::from("Fake Middleware"),
     };
 
-    assert_eq!(middleware.after_request(0), Ok(()));
+    match middleware.after_request(0) {
+      Ok(MiddlewareResult::Next) => (),
+      x => panic!("after_request returned {:?} instead of Ok(Next)", x),
+    }
   }
 
   // #[test]
@@ -91,14 +96,14 @@ mod tests {
   // }
 
   #[test]
-  fn request_success_returns_ok() {
+  fn request_success_returns_ok_next() {
     let mut middleware = FakeMiddleware {
       name: String::from("Fake Middleware"),
     };
 
-    assert_eq!(
-      Ok(()),
-      middleware.request_success(&mut Response::new(Body::empty()), 0)
-    );
+    match middleware.request_success(&mut Response::new(Body::empty()), 0) {
+      Ok(MiddlewareResult::Next) => (),
+      x => panic!("request_success returned {:?} instead of Ok(Next)", x),
+    }
   }
 }
