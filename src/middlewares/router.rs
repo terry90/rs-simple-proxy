@@ -1,7 +1,9 @@
 use http::uri::{Parts, Uri};
 use hyper::header::HeaderValue;
-use hyper::{Body, Error, Request, Response};
-use regex::{escape, Regex};
+use hyper::{Body, Request};
+#[cfg(test)]
+use mockers_derive::derive_mock;
+use regex::Regex;
 use std::fmt::Debug;
 
 use proxy::middleware::{Middleware, MiddlewareError, MiddlewareResult, MiddlewareResult::Next};
@@ -23,6 +25,7 @@ pub struct RouterRule {
 
 pub type RouterRules = Vec<RouterRule>;
 
+#[cfg_attr(test, derive_mock)]
 pub trait RouterConfig {
   fn get_router_rules(&self) -> &RouterRules;
 }
@@ -67,8 +70,8 @@ impl<T: RouterConfig> Middleware for Router<T> {
     _req_id: u64,
   ) -> Result<MiddlewareResult, MiddlewareError> {
     let rules = self.config.get_router_rules();
-
-    let mut host = get_host(req);
+  
+    let host = get_host(req);
     debug!("Routing {}{}", host, req.uri());
 
     for ref rule in rules {
@@ -96,5 +99,29 @@ where
       config,
       name: String::from("Router"),
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{Router, RouterConfig};
+  use mockers::Scenario;
+
+  #[test]
+  fn new_creates_new_router() {
+    let scenario = Scenario::new();
+    let config_mock = scenario.create_mock_for::<RouterConfig>();
+    let router = Router::new(config_mock);
+
+    assert_eq!("Router", router.name);
+  }
+
+  #[test]
+  fn new_creates_new_router() {
+    let scenario = Scenario::new();
+    let config_mock = scenario.create_mock_for::<RouterConfig>();
+    let router = Router::new(config_mock);
+
+    assert_eq!("Router", router.name);
   }
 }

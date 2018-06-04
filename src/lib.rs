@@ -1,3 +1,5 @@
+#![feature(proc_macro)]
+
 extern crate futures;
 extern crate hyper;
 #[macro_use]
@@ -7,6 +9,10 @@ extern crate failure_derive;
 extern crate chrono;
 extern crate failure;
 extern crate http;
+#[cfg(test)]
+extern crate mockers;
+#[cfg(test)]
+extern crate mockers_derive;
 extern crate rand;
 #[cfg(feature = "router")]
 extern crate regex;
