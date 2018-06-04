@@ -2,10 +2,7 @@ extern crate futures;
 extern crate hyper;
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate failure_derive;
 extern crate chrono;
-extern crate failure;
 extern crate http;
 extern crate rand;
 #[cfg(feature = "router")]

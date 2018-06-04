@@ -8,7 +8,6 @@ use hyper::client::connect::HttpConnector;
 use hyper::rt::Future;
 use hyper::service::Service;
 use hyper::{Body, Client, Request};
-use std::fmt::Debug;
 use std::sync::Arc;
 
 use rand::prelude::*;
@@ -43,7 +42,10 @@ impl Service for ProxyService {
 
     for mw in self.middlewares.lock().unwrap().iter_mut() {
       match mw.before_request(&mut req, req_id) {
-        Err(err) => error!("[{}] before_request errored: {:?}", mw.get_name(), err),
+        Err(err) => {
+          error!("[{}] before_request errored: {:?}", mw.get_name(), err);
+          return Box::new(future::ok(err.to_json_response()));
+        }
         Ok(RespondWith(response)) => return Box::new(future::ok(response)),
         Ok(Next) => (),
       }

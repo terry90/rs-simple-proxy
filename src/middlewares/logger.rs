@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
-use hyper::{Body, Request, Response};
+use hyper::{Body, Request};
 use std::collections::HashMap;
 
-use proxy::middleware::{Middleware, MiddlewareError, MiddlewareResult, MiddlewareResult::Next};
+use proxy::error::MiddlewareError;
+use proxy::middleware::{Middleware, MiddlewareResult, MiddlewareResult::Next};
 
 #[derive(Clone, Default)]
 pub struct Logger {

@@ -1,10 +1,5 @@
 use hyper::{Body, Error, Request, Response};
-
-#[derive(Fail, Debug)]
-pub enum MiddlewareError {
-  #[fail(display = "An unknown error has occurred.")]
-  UnknownError,
-}
+use proxy::error::MiddlewareError;
 
 pub enum MiddlewareResult {
   RespondWith(Response<Body>),

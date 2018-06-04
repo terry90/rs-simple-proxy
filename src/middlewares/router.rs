@@ -1,10 +1,11 @@
 use http::uri::{Parts, Uri};
 use hyper::header::HeaderValue;
-use hyper::{Body, Error, Request, Response};
-use regex::{escape, Regex};
+use hyper::{Body, Request};
+use regex::Regex;
 use std::fmt::Debug;
 
-use proxy::middleware::{Middleware, MiddlewareError, MiddlewareResult, MiddlewareResult::Next};
+use proxy::error::MiddlewareError;
+use proxy::middleware::{Middleware, MiddlewareResult, MiddlewareResult::Next};
 
 #[derive(Clone)]
 pub struct Router<T>
@@ -68,7 +69,7 @@ impl<T: RouterConfig> Middleware for Router<T> {
   ) -> Result<MiddlewareResult, MiddlewareError> {
     let rules = self.config.get_router_rules();
 
-    let mut host = get_host(req);
+    let host = get_host(req);
     debug!("Routing {}{}", host, req.uri());
 
     for ref rule in rules {
