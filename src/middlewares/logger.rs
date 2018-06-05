@@ -11,6 +11,9 @@ pub struct Logger {
   name: String,
 }
 
+/// # Panics
+/// May panic if the request state has not been initialized in `before_request`.
+/// e.g If a middleware responded early before the logger in `before_request`.
 impl Middleware for Logger {
   fn get_name(&self) -> &String {
     &self.name
@@ -31,7 +34,10 @@ impl Middleware for Logger {
   }
 
   fn after_request(&mut self, req_id: u64) -> Result<MiddlewareResult, MiddlewareError> {
-    let start_time = self.start_time_queue.remove(&req_id).unwrap(); // TODO avoid panic
+    let start_time = self
+      .start_time_queue
+      .remove(&req_id)
+      .expect("Logger middleware has a corrupt state, ensure it run before other middlewares"); // TODO avoid panic
 
     info!(
       "[{}] Request took {}ms",

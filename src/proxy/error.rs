@@ -3,20 +3,28 @@ use std::error::Error;
 
 #[derive(Debug)]
 pub struct MiddlewareError {
-  pub details: String,
+  pub description: String,
   pub body: String,
   pub status: StatusCode,
 }
 
+impl From<MiddlewareError> for Response<Body> {
+  fn from(err: MiddlewareError) -> Response<Body> {
+    err.to_json_response()
+  }
+}
+
 impl MiddlewareError {
-  pub fn new(details: String, body: Option<String>, status: StatusCode) -> MiddlewareError {
+  pub fn new(description: String, body: Option<String>, status: StatusCode) -> MiddlewareError {
     let body = match body {
       Some(body) => body,
-      None => format!("Internal proxy server error: {}", &details),
+      None => format!("Internal proxy server error: {}", &description),
     };
 
+    debug!("Middleware error: {}", &description);
+
     MiddlewareError {
-      details,
+      description,
       status,
       body,
     }

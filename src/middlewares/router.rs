@@ -52,7 +52,7 @@ fn inject_host(req: &mut Request<Body>, old_host: &str, host: &str) {
     parts.path_and_query = Some(path_and_query.clone());
   }
 
-  debug!("{:?}", parts);
+  debug!("Found a route to {:?}", parts);
 
   *req.uri_mut() = Uri::from_parts(parts).unwrap();
 }
@@ -70,7 +70,7 @@ impl<T: RouterConfig> Middleware for Router<T> {
     let rules = self.config.get_router_rules();
 
     let host = get_host(req);
-    debug!("Routing {}{}", host, req.uri());
+    debug!("Routing => Host: {} URI: {}", host, req.uri());
 
     for ref rule in rules {
       debug!("Trying to convert {} to {}", &rule.from, &rule.to);
@@ -78,7 +78,6 @@ impl<T: RouterConfig> Middleware for Router<T> {
 
       if re.is_match(&host) {
         let new_host = re.replace(&host, rule.to.as_str());
-        // TODO ask @ workshop about security host etc..
         inject_host(req, &host, &new_host);
         break;
       }
