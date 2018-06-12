@@ -1,43 +1,46 @@
 use chrono::{DateTime, Utc};
 use hyper::{Body, Request};
-use std::collections::HashMap;
+use serde_json;
 
 use proxy::error::MiddlewareError;
 use proxy::middleware::{Middleware, MiddlewareResult, MiddlewareResult::Next};
+use proxy::service::State;
 
 #[derive(Clone, Default)]
-pub struct Logger {
-  start_time_queue: HashMap<u64, DateTime<Utc>>,
-  name: String,
-}
+pub struct Logger;
 
 /// # Panics
 /// May panic if the request state has not been initialized in `before_request`.
 /// e.g If a middleware responded early before the logger in `before_request`.
 impl Middleware for Logger {
-  fn get_name(&self) -> &String {
-    &self.name
+  fn name() -> String {
+    String::from("Logger")
   }
 
   fn before_request(
     &mut self,
     req: &mut Request<Body>,
     req_id: u64,
+    state: &State,
   ) -> Result<MiddlewareResult, MiddlewareError> {
     info!(
       "[{}] Starting request to {}",
       &req_id.to_string()[..6],
       req.uri()
     );
-    self.start_time_queue.insert(req_id, Utc::now());
+    let now = serde_json::to_string(&Utc::now()).expect("[Logger] Cannot serialize DateTime");
+    self.set_state(req_id, state, now)?;
     Ok(Next)
   }
 
-  fn after_request(&mut self, req_id: u64) -> Result<MiddlewareResult, MiddlewareError> {
-    let start_time = self
-      .start_time_queue
-      .remove(&req_id)
-      .expect("Logger middleware has a corrupt state, ensure it run before other middlewares"); // TODO avoid panic
+  fn after_request(
+    &mut self,
+    req_id: u64,
+    state: &State,
+  ) -> Result<MiddlewareResult, MiddlewareError> {
+    let start_time = self.get_state(req_id, state)?;
+    let start_time: DateTime<Utc> =
+      serde_json::from_str(&start_time).expect("[Logger] Cannot deserialize DateTime");
 
     info!(
       "[{}] Request took {}ms",
@@ -50,9 +53,6 @@ impl Middleware for Logger {
 
 impl Logger {
   pub fn new() -> Self {
-    Logger {
-      start_time_queue: HashMap::new(),
-      name: String::from("Logger"),
-    }
+    Logger {}
   }
 }

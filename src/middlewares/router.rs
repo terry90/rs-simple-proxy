@@ -6,6 +6,7 @@ use std::fmt::Debug;
 
 use proxy::error::MiddlewareError;
 use proxy::middleware::{Middleware, MiddlewareResult, MiddlewareResult::Next};
+use proxy::service::State;
 
 #[derive(Clone)]
 pub struct Router<T>
@@ -58,14 +59,19 @@ fn inject_host(req: &mut Request<Body>, old_host: &str, host: &str) {
 }
 
 impl<T: RouterConfig> Middleware for Router<T> {
-  fn get_name(&self) -> &String {
-    &self.name
+  fn name() -> String {
+    String::from("Router")
   }
+
+  // fn get_name(&self) -> String {
+  //   self.name
+  // }
 
   fn before_request(
     &mut self,
     req: &mut Request<Body>,
     _req_id: u64,
+    _state: &State,
   ) -> Result<MiddlewareResult, MiddlewareError> {
     let rules = self.config.get_router_rules();
 

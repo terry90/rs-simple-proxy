@@ -7,6 +7,8 @@ extern crate http;
 extern crate rand;
 #[cfg(feature = "router")]
 extern crate regex;
+extern crate serde;
+extern crate serde_json;
 
 pub mod middlewares;
 pub mod proxy;
@@ -17,7 +19,7 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 
 use proxy::middleware::Middleware;
-use proxy::service::ProxyService;
+use proxy::service::ProxyServiceBuilder;
 
 type Middlewares = Arc<Mutex<Vec<Box<Middleware + Send + Sync>>>>;
 
@@ -69,10 +71,8 @@ impl SimpleProxy {
     pub fn run(&self) {
         let addr = ([127, 0, 0, 1], self.port).into();
 
-        // TODO ask why double clone @ workshop
         let middlewares = self.middlewares.clone();
-
-        let proxy = move || ProxyService::new(middlewares.clone());
+        let proxy = ProxyServiceBuilder::new(middlewares);
 
         info!("Running proxy in {} mode", self.environment);
 
@@ -84,7 +84,6 @@ impl SimpleProxy {
     }
 
     pub fn add_middleware(&mut self, middleware: Box<Middleware + Send + Sync>) {
-        info!("Middleware [{}] added !", middleware.get_name());
         self.middlewares.lock().unwrap().push(middleware)
     }
 }
