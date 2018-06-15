@@ -7,6 +7,10 @@ extern crate rand;
 #[cfg(feature = "router")]
 extern crate regex;
 extern crate serde_json;
+#[macro_use]
+extern crate serde_derive;
+extern crate http;
+extern crate serde;
 
 pub mod middlewares;
 pub mod proxy;
