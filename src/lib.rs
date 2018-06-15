@@ -3,13 +3,9 @@ extern crate hyper;
 #[macro_use]
 extern crate log;
 extern crate chrono;
-extern crate http;
 extern crate rand;
 #[cfg(feature = "router")]
 extern crate regex;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
 extern crate serde_json;
 
 pub mod middlewares;
