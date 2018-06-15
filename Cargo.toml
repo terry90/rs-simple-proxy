@@ -1,6 +1,6 @@
 [package]
 name    = "simple_proxy"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Terry Raimondo <terry.raimondo@gmail.com>"]
 description = "Simple proxy with middlewares, easy to customize, easy to use."
 license = "Apache-2.0"
