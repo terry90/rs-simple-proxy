@@ -1,6 +1,6 @@
 use http::uri::{Parts, Uri};
 use hyper::header::HeaderValue;
-use hyper::{Body, Request};
+use hyper::{Body, Request, StatusCode};
 use regex::Regex;
 use std::fmt::Debug;
 
@@ -98,11 +98,15 @@ impl<T: RouterConfig> Middleware for Router<T> {
             public: route.public,
           })?,
         )?;
-        break;
+        return Ok(Next);
       }
     }
 
-    Ok(Next)
+    Err(MiddlewareError::new(
+      String::from("No route matched"),
+      Some(String::from("Not found")),
+      StatusCode::NOT_FOUND,
+    ))
   }
 }
 
