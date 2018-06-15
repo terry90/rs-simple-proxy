@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["Terry Raimondo <terry.raimondo@gmail.com>"]
 description = "Simple proxy with middlewares, easy to customize, easy to use."
 license = "Apache-2.0"
+homepage = "https://github.com/terry90/rs-simple-proxy"
+repository = "https://github.com/terry90/rs-simple-proxy"
 
 [features]
 router = ["regex"]
