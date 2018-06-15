@@ -39,14 +39,18 @@ impl Middleware for Logger {
     state: &State,
   ) -> Result<MiddlewareResult, MiddlewareError> {
     let start_time = self.get_state(req_id, state)?;
-    let start_time: DateTime<Utc> =
-      serde_json::from_str(&start_time).expect("[Logger] Cannot deserialize DateTime");
+    match start_time {
+      Some(time) => {
+        let start_time: DateTime<Utc> = serde_json::from_str(&time)?;
 
-    info!(
-      "[{}] Request took {}ms",
-      &req_id.to_string()[..6],
-      (Utc::now() - start_time).num_milliseconds()
-    );
+        info!(
+          "[{}] Request took {}ms",
+          &req_id.to_string()[..6],
+          (Utc::now() - start_time).num_milliseconds()
+        );
+      }
+      None => error!("[Logger] start time not found in state"),
+    }
     Ok(Next)
   }
 }

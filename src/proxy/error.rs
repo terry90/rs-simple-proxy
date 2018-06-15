@@ -18,7 +18,12 @@ impl MiddlewareError {
   pub fn new(description: String, body: Option<String>, status: StatusCode) -> MiddlewareError {
     let body = match body {
       Some(body) => body,
-      None => format!("Internal proxy server error: {}", &description),
+      None => {
+        // Uncatched error
+        let err = format!("Internal proxy server error: {}", &description);
+        error!("{}", &err);
+        err
+      }
     };
 
     debug!("Middleware error: {}", &description);

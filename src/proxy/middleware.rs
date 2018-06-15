@@ -30,15 +30,16 @@ pub trait Middleware {
     Ok(())
   }
 
-  fn state(req_id: u64, state: &State) -> Result<String, MiddlewareError>
+  fn state(req_id: u64, state: &State) -> Result<Option<String>, MiddlewareError>
   where
     Self: Sized,
   {
     let state = state.lock()?;
     debug!("State length: {}", state.len());
-    let state = state
-      .get(&(Self::name(), req_id))
-      .expect(&format!("[{}] State is corrupt", Self::name())); // TODO: Gracefuly fail
+    let state = match state.get(&(Self::name(), req_id)) {
+      None => None,
+      Some(state) => Some(state.to_string()),
+    };
 
     debug!(
       "[{}] State for {}: {:?}",
@@ -47,10 +48,10 @@ pub trait Middleware {
       state
     );
 
-    Ok(state.to_string())
+    Ok(state)
   }
 
-  fn get_state(&self, req_id: u64, state: &State) -> Result<String, MiddlewareError>
+  fn get_state(&self, req_id: u64, state: &State) -> Result<Option<String>, MiddlewareError>
   where
     Self: Sized,
   {
