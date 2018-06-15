@@ -71,7 +71,7 @@ impl SimpleProxy {
     }
 
     pub fn run(&self) {
-        let addr = ([127, 0, 0, 1], self.port).into();
+        let addr = ([0, 0, 0, 0], self.port).into();
 
         let middlewares = self.middlewares.clone();
         let proxy = ProxyServiceBuilder::new(middlewares);
