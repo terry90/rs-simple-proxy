@@ -3,7 +3,8 @@ use hyper::{Body, Request};
 use serde_json;
 
 use proxy::error::MiddlewareError;
-use proxy::middleware::{Middleware, MiddlewareResult, MiddlewareResult::Next};
+use proxy::middleware::MiddlewareResult::Next;
+use proxy::middleware::{Middleware, MiddlewareResult};
 use proxy::service::State;
 
 #[derive(Clone, Default)]

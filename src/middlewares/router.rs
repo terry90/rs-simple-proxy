@@ -5,7 +5,8 @@ use regex::Regex;
 use std::fmt::Debug;
 
 use proxy::error::MiddlewareError;
-use proxy::middleware::{Middleware, MiddlewareResult, MiddlewareResult::Next};
+use proxy::middleware::MiddlewareResult::Next;
+use proxy::middleware::{Middleware, MiddlewareResult};
 use proxy::service::State;
 
 use serde_json;
