@@ -1,13 +1,12 @@
-extern crate futures;
-extern crate http;
-extern crate hyper;
-
 use futures::future;
 use futures::future::IntoFuture;
+
+use hyper;
 use hyper::client::connect::HttpConnector;
 use hyper::rt::Future;
 use hyper::service::{NewService, Service};
 use hyper::{Body, Client, Request, Response};
+
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::{Arc, Mutex};
