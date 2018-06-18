@@ -129,11 +129,11 @@ impl ProxyService {
     }
   }
 
-  pub fn new(middlewares: Middlewares, rng: SmallRng) -> Self {
+  pub fn new(middlewares: Middlewares) -> Self {
     ProxyService {
       state: Arc::new(Mutex::new(HashMap::new())),
       client: Client::new(),
-      rng,
+      rng: SmallRng::from_entropy(),
       middlewares,
     }
   }
@@ -151,15 +151,11 @@ impl IntoFuture for ProxyService {
 
 pub struct ProxyServiceBuilder {
   middlewares: Middlewares,
-  rng: SmallRng,
 }
 
 impl ProxyServiceBuilder {
   pub fn new(middlewares: Middlewares) -> Self {
-    ProxyServiceBuilder {
-      rng: SmallRng::from_entropy(),
-      middlewares,
-    }
+    ProxyServiceBuilder { middlewares }
   }
 }
 
@@ -173,6 +169,6 @@ impl NewService for ProxyServiceBuilder {
 
   fn new_service(&self) -> Self::Future {
     let mws = Arc::clone(&self.middlewares);
-    Box::new(future::ok(ProxyService::new(mws, self.rng.clone())))
+    Box::new(future::ok(ProxyService::new(mws)))
   }
 }
