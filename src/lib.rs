@@ -7,6 +7,7 @@ extern crate rand;
 #[cfg(feature = "router")]
 extern crate regex;
 extern crate serde_json;
+#[cfg(feature = "router")]
 #[macro_use]
 extern crate serde_derive;
 extern crate http;

@@ -25,8 +25,9 @@ impl Middleware for Logger {
     state: &State,
   ) -> Result<MiddlewareResult, MiddlewareError> {
     info!(
-      "[{}] Starting request to {}",
+      "[{}] Starting a {} request to {}",
       &req_id.to_string()[..6],
+      req.method(),
       req.uri()
     );
     let now = serde_json::to_string(&Utc::now()).expect("[Logger] Cannot serialize DateTime");
