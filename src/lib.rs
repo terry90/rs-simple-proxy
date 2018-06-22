@@ -77,7 +77,7 @@ impl SimpleProxy {
         let middlewares = self.middlewares.clone();
         let proxy = ProxyServiceBuilder::new(middlewares);
 
-        info!("Running proxy in {} mode", self.environment);
+        info!("Running proxy in {} mode on: {}", self.environment, &addr);
 
         let server = Server::bind(&addr)
             .serve(proxy)
