@@ -3,56 +3,56 @@ use std::error::Error;
 
 #[derive(Debug)]
 pub struct MiddlewareError {
-  pub description: String,
-  pub body: String,
-  pub status: StatusCode,
+    pub description: String,
+    pub body: String,
+    pub status: StatusCode,
 }
 
 impl From<MiddlewareError> for Response<Body> {
-  fn from(err: MiddlewareError) -> Response<Body> {
-    err.to_json_response()
-  }
+    fn from(err: MiddlewareError) -> Response<Body> {
+        err.to_json_response()
+    }
 }
 
 impl MiddlewareError {
-  pub fn new(description: String, body: Option<String>, status: StatusCode) -> MiddlewareError {
-    let body = match body {
-      Some(body) => body,
-      None => {
-        // Uncatched error
-        let err = format!("Internal proxy server error: {}", &description);
-        error!("{}", &err);
-        err
-      }
-    };
+    pub fn new(description: String, body: Option<String>, status: StatusCode) -> MiddlewareError {
+        let body = match body {
+            Some(body) => body,
+            None => {
+                // Uncatched error
+                let err = format!("Internal proxy server error: {}", &description);
+                error!("{}", &err);
+                err
+            }
+        };
 
-    debug!("Middleware error: {}", &description);
+        debug!("Middleware error: {}", &description);
 
-    MiddlewareError {
-      description,
-      status,
-      body,
+        MiddlewareError {
+            description,
+            status,
+            body,
+        }
     }
-  }
 
-  pub fn to_json_response(&self) -> Response<Body> {
-    Response::builder()
-      .header("Content-Type", "application/json")
-      .status(self.status)
-      .body(Body::from(format!("{{\"error\":\"{}\"}}", self.body)))
-      .unwrap()
-  }
+    pub fn to_json_response(&self) -> Response<Body> {
+        Response::builder()
+            .header("Content-Type", "application/json")
+            .status(self.status)
+            .body(Body::from(format!("{{\"error\":\"{}\"}}", self.body)))
+            .unwrap()
+    }
 }
 
 impl<E> From<E> for MiddlewareError
 where
-  E: Error,
+    E: Error,
 {
-  fn from(err: E) -> MiddlewareError {
-    MiddlewareError::new(
-      String::from(err.description()),
-      None,
-      StatusCode::INTERNAL_SERVER_ERROR,
-    )
-  }
+    fn from(err: E) -> MiddlewareError {
+        MiddlewareError::new(
+            String::from(err.description()),
+            None,
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )
+    }
 }
