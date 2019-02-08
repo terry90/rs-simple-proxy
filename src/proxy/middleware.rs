@@ -1,6 +1,6 @@
+use crate::proxy::error::MiddlewareError;
+use crate::proxy::service::State;
 use hyper::{Body, Error, Request, Response};
-use proxy::error::MiddlewareError;
-use proxy::service::State;
 
 pub enum MiddlewareResult {
     RespondWith(Response<Body>),

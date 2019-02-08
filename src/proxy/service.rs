@@ -1,7 +1,6 @@
 use futures::future;
 use futures::future::IntoFuture;
 
-use hyper;
 use hyper::client::connect::HttpConnector;
 use hyper::rt::Future;
 use hyper::service::{NewService, Service};
@@ -15,8 +14,8 @@ use rand::prelude::*;
 use rand::rngs::SmallRng;
 use rand::FromEntropy;
 
-use proxy::middleware::MiddlewareResult::*;
-use Middlewares;
+use crate::proxy::middleware::MiddlewareResult::*;
+use crate::Middlewares;
 
 type BoxFut = Box<Future<Item = hyper::Response<Body>, Error = hyper::Error> + Send>;
 pub type State = Arc<Mutex<HashMap<(String, u64), String>>>;
@@ -79,7 +78,8 @@ impl Service for ProxyService {
                     }
                 }
                 err
-            }).map(move |mut res| {
+            })
+            .map(move |mut res| {
                 for mw in mws_success.lock().unwrap().iter_mut() {
                     match mw.request_success(&mut res, req_id, &state_success) {
                         Err(err) => res = Response::from(err),
@@ -88,7 +88,8 @@ impl Service for ProxyService {
                     }
                 }
                 res
-            }).then(move |res| match res {
+            })
+            .then(move |res| match res {
                 // Allows middlewares to catch errors after requests
                 Err(err) => {
                     let mut res = Err(err);

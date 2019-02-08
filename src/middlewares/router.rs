@@ -4,10 +4,10 @@ use hyper::{Body, Request, StatusCode};
 use regex::Regex;
 use std::fmt::Debug;
 
-use proxy::error::MiddlewareError;
-use proxy::middleware::MiddlewareResult::Next;
-use proxy::middleware::{Middleware, MiddlewareResult};
-use proxy::service::State;
+use crate::proxy::error::MiddlewareError;
+use crate::proxy::middleware::MiddlewareResult::Next;
+use crate::proxy::middleware::{Middleware, MiddlewareResult};
+use crate::proxy::service::State;
 
 use serde_json;
 

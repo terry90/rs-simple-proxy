@@ -1,17 +1,8 @@
-extern crate futures;
-extern crate hyper;
 #[macro_use]
 extern crate log;
-extern crate chrono;
-extern crate rand;
-#[cfg(feature = "router")]
-extern crate regex;
-extern crate serde_json;
 #[cfg(feature = "router")]
 #[macro_use]
 extern crate serde_derive;
-extern crate http;
-extern crate serde;
 
 pub mod middlewares;
 pub mod proxy;

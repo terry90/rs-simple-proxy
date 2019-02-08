@@ -2,10 +2,10 @@ use chrono::{DateTime, Utc};
 use hyper::{Body, Request, Response};
 use serde_json;
 
-use proxy::error::MiddlewareError;
-use proxy::middleware::MiddlewareResult::Next;
-use proxy::middleware::{Middleware, MiddlewareResult};
-use proxy::service::State;
+use crate::proxy::error::MiddlewareError;
+use crate::proxy::middleware::MiddlewareResult::Next;
+use crate::proxy::middleware::{Middleware, MiddlewareResult};
+use crate::proxy::service::State;
 
 #[derive(Clone, Default)]
 pub struct Logger;
