@@ -12,8 +12,8 @@ use hyper::Server;
 use std::fmt;
 use std::sync::{Arc, Mutex};
 
-use proxy::middleware::Middleware;
-use proxy::service::ProxyServiceBuilder;
+use crate::proxy::middleware::Middleware;
+use crate::proxy::service::ProxyServiceBuilder;
 
 type Middlewares = Arc<Mutex<Vec<Box<Middleware + Send + Sync>>>>;
 

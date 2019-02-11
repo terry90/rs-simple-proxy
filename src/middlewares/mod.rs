@@ -7,9 +7,9 @@ pub mod logger;
 pub mod router;
 
 #[cfg(feature = "cors")]
-pub use cors::Cors;
+pub use self::cors::Cors;
 #[cfg(feature = "health")]
-pub use health::Health;
-pub use logger::Logger;
+pub use self::health::Health;
+pub use self::logger::Logger;
 #[cfg(feature = "router")]
-pub use router::Router;
+pub use self::router::Router;
