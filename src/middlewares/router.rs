@@ -2,7 +2,6 @@ use http::uri::{Parts, Uri};
 use hyper::header::HeaderValue;
 use hyper::{Body, Request, StatusCode};
 use regex::Regex;
-use std::fmt::Debug;
 
 use crate::proxy::error::MiddlewareError;
 use crate::proxy::middleware::MiddlewareResult::Next;
@@ -12,16 +11,29 @@ use crate::proxy::service::State;
 use serde_json;
 
 #[derive(Clone)]
-pub struct Router<T> {
-    config: T,
+pub struct Router {
+    routes: RouterRules,
     name: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
+pub struct RouteRegex {
+    #[serde(with = "serde_regex")]
+    pub host: Regex,
+    #[serde(with = "serde_regex")]
+    pub path: Regex,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct Route {
-    pub from: Regex, // TODO
-    pub to: String,
+    pub from: RouteRegex,
+    pub to: RouteRegex,
     pub public: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RouterRulesWrapper {
+    pub rules: RouterRules,
 }
 
 pub type RouterRules = Vec<Route>;
@@ -33,19 +45,31 @@ pub struct MatchedRoute {
 }
 
 pub trait RouterConfig {
-    fn get_router_rules(&self) -> &RouterRules;
+    fn get_router_filename(&self) -> &str;
 }
 
-fn get_host(req: &mut Request<Body>) -> Result<String, MiddlewareError> {
+fn get_host_and_path(req: &mut Request<Body>) -> Result<(String, String), MiddlewareError> {
     let uri = req.uri();
+    let path = uri
+        .path_and_query()
+        .map(|paq| paq.to_string())
+        .unwrap_or(String::from(""));
 
     match uri.host() {
-        Some(host) => Ok(String::from(host)),
-        None => Ok(String::from(req.headers().get("host").unwrap().to_str()?)), // TODO handle error
+        Some(host) => Ok((String::from(host), path)),
+        None => Ok((
+            String::from(req.headers().get("host").unwrap().to_str()?),
+            path,
+        )),
     }
 }
 
-fn inject_host(req: &mut Request<Body>, old_host: &str, host: &str) -> Result<(), MiddlewareError> {
+fn inject_new_uri(
+    req: &mut Request<Body>,
+    old_host: &str,
+    host: &str,
+    path: &str,
+) -> Result<(), MiddlewareError> {
     {
         let headers = req.headers_mut();
 
@@ -55,10 +79,7 @@ fn inject_host(req: &mut Request<Body>, old_host: &str, host: &str) -> Result<()
     let mut parts = Parts::default();
     parts.scheme = Some("http".parse()?);
     parts.authority = Some(host.parse()?);
-
-    if let Some(path_and_query) = req.uri().path_and_query() {
-        parts.path_and_query = Some(path_and_query.clone());
-    }
+    parts.path_and_query = Some(path.parse()?);
 
     debug!("Found a route to {:?}", parts);
 
@@ -67,7 +88,7 @@ fn inject_host(req: &mut Request<Body>, old_host: &str, host: &str) -> Result<()
     Ok(())
 }
 
-impl<T: RouterConfig> Middleware for Router<T> {
+impl Middleware for Router {
     fn name() -> String {
         String::from("Router")
     }
@@ -78,25 +99,35 @@ impl<T: RouterConfig> Middleware for Router<T> {
         req_id: u64,
         state: &State,
     ) -> Result<MiddlewareResult, MiddlewareError> {
-        let routes = self.config.get_router_rules();
+        let routes = &self.routes;
 
-        let host = get_host(req)?;
-        debug!("Routing => Host: {} URI: {}", host, req.uri());
+        let (host, path) = get_host_and_path(req)?;
+        debug!("Routing => Host: {} Path: {}", host, path);
 
         for route in routes {
-            debug!("Trying to convert {} to {}", &route.from, &route.to);
-            let re = &route.from;
+            let (re_host, re_path) = (&route.from.host, &route.from.path);
+            let to = &route.to;
+            let public = route.public;
 
-            if re.is_match(&host) {
-                let new_host = re.replace(&host, route.to.as_str());
+            debug!("Trying to convert from {} / {:?}", &re_host, &re_path);
+
+            if re_host.is_match(&host) {
+                let new_host = re_host.replace(&host, to.host.as_str());
+
+                let new_path = if re_path.is_match(&path) {
+                    re_path.replace(&path, to.path.as_str())
+                } else {
+                    continue;
+                };
+
                 debug!("Proxying to {}", &new_host);
-                inject_host(req, &host, &new_host)?;
+                inject_new_uri(req, &host, &new_host, &new_path)?;
                 self.set_state(
                     req_id,
                     state,
                     serde_json::to_string(&MatchedRoute {
                         uri: req.uri().to_string(),
-                        public: route.public,
+                        public: public,
                     })?,
                 )?;
                 return Ok(Next);
@@ -111,13 +142,26 @@ impl<T: RouterConfig> Middleware for Router<T> {
     }
 }
 
-impl<T> Router<T>
-where
-    T: RouterConfig + Debug,
-{
-    pub fn new(config: T) -> Self {
+fn read_routes(config: &RouterConfig) -> RouterRules {
+    use std::fs::File;
+    use std::io::prelude::Read;
+
+    let mut f = File::open(config.get_router_filename()).expect("Router config not found !");
+
+    let mut data = String::new();
+    f.read_to_string(&mut data)
+        .expect("Cannot read Router config !");
+
+    let rules: RouterRulesWrapper =
+        serde_json::from_str(&data).expect("Cannot parse Router config file !");
+
+    rules.rules
+}
+
+impl Router {
+    pub fn new(config: &RouterConfig) -> Self {
         Router {
-            config,
+            routes: read_routes(config),
             name: String::from("Router"),
         }
     }
