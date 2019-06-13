@@ -5,7 +5,7 @@ use crate::proxy::error::MiddlewareError;
 use crate::proxy::middleware::MiddlewareResult::Next;
 use crate::proxy::middleware::MiddlewareResult::RespondWith;
 use crate::proxy::middleware::{Middleware, MiddlewareResult};
-use crate::proxy::service::State;
+use crate::proxy::service::{ServiceContext, State};
 
 pub struct Cors {
     allow_origin: &'static str,
@@ -14,18 +14,23 @@ pub struct Cors {
 }
 
 impl Cors {
-    pub fn new(allow_origin: &'static str, allow_methods: &'static str, allow_headers: &'static str) -> Self {
+    pub fn new(
+        allow_origin: &'static str,
+        allow_methods: &'static str,
+        allow_headers: &'static str,
+    ) -> Self {
         Cors {
-            allow_origin: allow_origin,
-            allow_methods: allow_methods,
-            allow_headers: allow_headers,
+            allow_origin,
+            allow_methods,
+            allow_headers,
         }
     }
 
     fn set_cors_headers(&self, response: &mut Response<Body>) {
-        response
-            .headers_mut()
-            .insert("Access-Control-Allow-Origin", HeaderValue::from_static(self.allow_origin));
+        response.headers_mut().insert(
+            "Access-Control-Allow-Origin",
+            HeaderValue::from_static(self.allow_origin),
+        );
         response.headers_mut().insert(
             "Access-Control-Allow-Methods",
             HeaderValue::from_static(self.allow_methods),
@@ -45,10 +50,10 @@ impl Middleware for Cors {
     fn before_request(
         &mut self,
         req: &mut Request<Body>,
-        _req_id: u64,
+        _context: &ServiceContext,
         _state: &State,
     ) -> Result<MiddlewareResult, MiddlewareError> {
-        if req.method() == &Method::OPTIONS {
+        if req.method() == Method::OPTIONS {
             let mut response: Response<Body> = Response::new(Body::from(""));
             self.set_cors_headers(&mut response);
 
@@ -60,7 +65,7 @@ impl Middleware for Cors {
     fn after_request(
         &mut self,
         response: Option<&mut Response<Body>>,
-        _req_id: u64,
+        _context: &ServiceContext,
         _state: &State,
     ) -> Result<MiddlewareResult, MiddlewareError> {
         if let Some(res) = response {

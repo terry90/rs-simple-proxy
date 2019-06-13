@@ -71,7 +71,7 @@ impl SimpleProxy {
 
         let middlewares = Arc::clone(&self.middlewares);
         let make_svc = make_service_fn(move |socket: &AddrStream| {
-            let remote_addr = socket.remote_addr().clone();
+            let remote_addr = socket.remote_addr();
 
             debug!("Handling connection for IP: {}", &remote_addr);
 

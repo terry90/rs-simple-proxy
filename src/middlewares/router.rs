@@ -6,7 +6,7 @@ use regex::Regex;
 use crate::proxy::error::MiddlewareError;
 use crate::proxy::middleware::MiddlewareResult::Next;
 use crate::proxy::middleware::{Middleware, MiddlewareResult};
-use crate::proxy::service::State;
+use crate::proxy::service::{ServiceContext, State};
 
 use serde_json;
 
@@ -52,8 +52,8 @@ fn get_host_and_path(req: &mut Request<Body>) -> Result<(String, String), Middle
     let uri = req.uri();
     let path = uri
         .path_and_query()
-        .map(|paq| paq.to_string())
-        .unwrap_or(String::from(""));
+        .map(ToString::to_string)
+        .unwrap_or_else(|| String::from(""));
 
     match uri.host() {
         Some(host) => Ok((String::from(host), path)),
@@ -96,7 +96,7 @@ impl Middleware for Router {
     fn before_request(
         &mut self,
         req: &mut Request<Body>,
-        req_id: u64,
+        context: &ServiceContext,
         state: &State,
     ) -> Result<MiddlewareResult, MiddlewareError> {
         let routes = &self.routes;
@@ -123,11 +123,11 @@ impl Middleware for Router {
                 debug!("Proxying to {}", &new_host);
                 inject_new_uri(req, &host, &new_host, &new_path)?;
                 self.set_state(
-                    req_id,
+                    context.req_id,
                     state,
                     serde_json::to_string(&MatchedRoute {
                         uri: req.uri().to_string(),
-                        public: public,
+                        public,
                     })?,
                 )?;
                 return Ok(Next);

@@ -3,7 +3,7 @@ use hyper::{Body, Request, Response};
 use crate::proxy::error::MiddlewareError;
 use crate::proxy::middleware::MiddlewareResult::{Next, RespondWith};
 use crate::proxy::middleware::{Middleware, MiddlewareResult};
-use crate::proxy::service::State;
+use crate::proxy::service::{ServiceContext, State};
 
 pub struct Health {
     route: &'static str,
@@ -12,10 +12,7 @@ pub struct Health {
 
 impl Health {
     pub fn new(route: &'static str, raw_body: &'static str) -> Self {
-        Health {
-            route: route,
-            raw_body: raw_body,
-        }
+        Health { route, raw_body }
     }
 }
 
@@ -27,7 +24,7 @@ impl Middleware for Health {
     fn before_request(
         &mut self,
         req: &mut Request<Body>,
-        _req_id: u64,
+        _context: &ServiceContext,
         _state: &State,
     ) -> Result<MiddlewareResult, MiddlewareError> {
         if req.uri().path() == self.route {
