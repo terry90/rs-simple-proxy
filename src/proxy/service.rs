@@ -3,11 +3,11 @@ use futures::future::IntoFuture;
 
 use hyper::client::connect::HttpConnector;
 use hyper::rt::Future;
-use hyper::service::{NewService, Service};
+use hyper::service::Service;
 use hyper::{Body, Client, Request, Response};
 
 use std::collections::HashMap;
-use std::error::Error;
+use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
 use rand::prelude::*;
@@ -24,7 +24,14 @@ pub struct ProxyService {
     client: Client<HttpConnector, Body>,
     middlewares: Middlewares,
     state: State,
+    remote_addr: SocketAddr,
     rng: SmallRng,
+}
+
+#[derive(Clone, Copy)]
+pub struct ServiceContext {
+    pub remote_addr: SocketAddr,
+    pub req_id: u64,
 }
 
 impl Service for ProxyService {
@@ -49,10 +56,15 @@ impl Service for ProxyService {
 
         let req_id = self.rng.next_u64();
 
+        let context = ServiceContext {
+            req_id,
+            remote_addr: self.remote_addr,
+        };
+
         let mut before_res: Option<Response<Body>> = None;
         for mw in self.middlewares.lock().unwrap().iter_mut() {
             // Run all middlewares->before_request
-            if let Some(res) = match mw.before_request(&mut req, req_id, &self.state) {
+            if let Some(res) = match mw.before_request(&mut req, &context, &self.state) {
                 Err(err) => Some(Response::from(err)),
                 Ok(RespondWith(response)) => Some(response),
                 Ok(Next) => None,
@@ -64,7 +76,7 @@ impl Service for ProxyService {
         }
 
         if let Some(res) = before_res {
-            return Box::new(future::ok(self.early_response(req_id, res, &self.state)));
+            return Box::new(future::ok(self.early_response(&context, res, &self.state)));
         }
 
         let res = self
@@ -73,7 +85,7 @@ impl Service for ProxyService {
             .map_err(move |err| {
                 for mw in mws_failure.lock().unwrap().iter_mut() {
                     // TODO: think about graceful handling
-                    if let Err(err) = mw.request_failure(&err, req_id, &state_failure) {
+                    if let Err(err) = mw.request_failure(&err, &context, &state_failure) {
                         error!("Request_failure errored: {:?}", &err);
                     }
                 }
@@ -81,7 +93,7 @@ impl Service for ProxyService {
             })
             .map(move |mut res| {
                 for mw in mws_success.lock().unwrap().iter_mut() {
-                    match mw.request_success(&mut res, req_id, &state_success) {
+                    match mw.request_success(&mut res, &context, &state_success) {
                         Err(err) => res = Response::from(err),
                         Ok(RespondWith(response)) => res = response,
                         Ok(Next) => (),
@@ -94,7 +106,7 @@ impl Service for ProxyService {
                 Err(err) => {
                     let mut res = Err(err);
                     for mw in mws_after.lock().unwrap().iter_mut() {
-                        match mw.after_request(None, req_id, &state_after) {
+                        match mw.after_request(None, &context, &state_after) {
                             Err(err) => res = Ok(Response::from(err)),
                             Ok(RespondWith(response)) => res = Ok(response),
                             Ok(Next) => (),
@@ -105,7 +117,7 @@ impl Service for ProxyService {
                 // Allows middlewares to change the response after requests
                 Ok(mut res) => {
                     for mw in mws_after.lock().unwrap().iter_mut() {
-                        match mw.after_request(Some(&mut res), req_id, &state_after) {
+                        match mw.after_request(Some(&mut res), &context, &state_after) {
                             Err(err) => res = Response::from(err),
                             Ok(RespondWith(response)) => res = response,
                             Ok(Next) => (),
@@ -122,12 +134,12 @@ impl Service for ProxyService {
 impl ProxyService {
     fn early_response(
         &self,
-        req_id: u64,
+        context: &ServiceContext,
         mut res: Response<Body>,
         state: &State,
     ) -> Response<Body> {
         for mw in self.middlewares.lock().unwrap().iter_mut() {
-            match mw.after_request(Some(&mut res), req_id, state) {
+            match mw.after_request(Some(&mut res), context, state) {
                 Err(err) => res = Response::from(err),
                 Ok(RespondWith(response)) => res = response,
                 Ok(Next) => (),
@@ -148,11 +160,12 @@ impl ProxyService {
         }
     }
 
-    pub fn new(middlewares: Middlewares) -> Self {
+    pub fn new(middlewares: Middlewares, remote_addr: SocketAddr) -> Self {
         ProxyService {
             state: Arc::new(Mutex::new(HashMap::new())),
             client: Client::new(),
             rng: SmallRng::from_entropy(),
+            remote_addr,
             middlewares,
         }
     }
@@ -165,29 +178,5 @@ impl IntoFuture for ProxyService {
 
     fn into_future(self) -> Self::Future {
         future::ok(self)
-    }
-}
-
-pub struct ProxyServiceBuilder {
-    middlewares: Middlewares,
-}
-
-impl ProxyServiceBuilder {
-    pub fn new(middlewares: Middlewares) -> Self {
-        ProxyServiceBuilder { middlewares }
-    }
-}
-
-impl NewService for ProxyServiceBuilder {
-    type Error = hyper::Error;
-    type ReqBody = Body;
-    type ResBody = Body;
-    type Service = ProxyService;
-    type InitError = Box<Error + Send + Sync>;
-    type Future = Box<Future<Item = Self::Service, Error = Self::InitError> + Send>;
-
-    fn new_service(&self) -> Self::Future {
-        let mws = Arc::clone(&self.middlewares);
-        Box::new(future::ok(ProxyService::new(mws)))
     }
 }

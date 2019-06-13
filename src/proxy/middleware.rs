@@ -1,5 +1,5 @@
 use crate::proxy::error::MiddlewareError;
-use crate::proxy::service::State;
+use crate::proxy::service::{ServiceContext, State};
 use hyper::{Body, Error, Request, Response};
 
 pub enum MiddlewareResult {
@@ -61,7 +61,7 @@ pub trait Middleware {
     fn before_request(
         &mut self,
         _req: &mut Request<Body>,
-        _req_id: u64,
+        _ctx: &ServiceContext,
         _state: &State,
     ) -> Result<MiddlewareResult, MiddlewareError> {
         Ok(Next)
@@ -70,7 +70,7 @@ pub trait Middleware {
     fn after_request(
         &mut self,
         _res: Option<&mut Response<Body>>,
-        _req_id: u64,
+        _ctx: &ServiceContext,
         _state: &State,
     ) -> Result<MiddlewareResult, MiddlewareError> {
         Ok(Next)
@@ -79,7 +79,7 @@ pub trait Middleware {
     fn request_failure(
         &mut self,
         _err: &Error,
-        _req_id: u64,
+        _ctx: &ServiceContext,
         _state: &State,
     ) -> Result<MiddlewareResult, MiddlewareError> {
         Ok(Next)
@@ -88,7 +88,7 @@ pub trait Middleware {
     fn request_success(
         &mut self,
         _res: &mut Response<Body>,
-        _req_id: u64,
+        _ctx: &ServiceContext,
         _state: &State,
     ) -> Result<MiddlewareResult, MiddlewareError> {
         Ok(Next)
