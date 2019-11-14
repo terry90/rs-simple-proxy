@@ -17,7 +17,7 @@ use rand::FromEntropy;
 use crate::proxy::middleware::MiddlewareResult::*;
 use crate::Middlewares;
 
-type BoxFut = Box<Future<Item = hyper::Response<Body>, Error = hyper::Error> + Send>;
+type BoxFut = Box<dyn Future<Item = hyper::Response<Body>, Error = hyper::Error> + Send>;
 pub type State = Arc<Mutex<HashMap<(String, u64), String>>>;
 
 pub struct ProxyService {

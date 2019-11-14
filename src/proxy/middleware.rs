@@ -26,7 +26,7 @@ pub trait Middleware {
         Self: Sized,
     {
         let mut state = state.lock()?;
-        state.insert((self.get_name().to_string(), req_id), data);
+        state.insert((self.get_name(), req_id), data);
         Ok(())
     }
 

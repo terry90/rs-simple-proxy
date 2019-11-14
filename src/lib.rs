@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 use crate::proxy::middleware::Middleware;
 use crate::proxy::service::ProxyService;
 
-type Middlewares = Arc<Mutex<Vec<Box<Middleware + Send + Sync>>>>;
+type Middlewares = Arc<Mutex<Vec<Box<dyn Middleware + Send + Sync>>>>;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Environment {
@@ -85,7 +85,7 @@ impl SimpleProxy {
         hyper::rt::run(server);
     }
 
-    pub fn add_middleware(&mut self, middleware: Box<Middleware + Send + Sync>) {
+    pub fn add_middleware(&mut self, middleware: Box<dyn Middleware + Send + Sync>) {
         self.middlewares.lock().unwrap().push(middleware)
     }
 }
