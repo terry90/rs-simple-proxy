@@ -3,37 +3,28 @@
 ## Usage
 
 ```rust
-extern crate simple_proxy;
+use simple_proxy::middlewares::Logger;
+use simple_proxy::{SimpleProxy, Environment};
 
-mod middlewares;
+use structopt::StructOpt;
 
-use middlewares::auth::Auth;
-use simple_proxy::middlewares::{Cors, Health, Logger, Router};
-use simple_proxy::SimpleProxy;
+#[derive(StructOpt, Debug)]
+struct Cli {
+    port: u16,
+}
 
 fn main() {
-    // Middlewares
-    let auth = Auth::new(config.clone());
-    let health = Health::new("/health", "OK !");
-    let router = Router::new(config);
+    let args = Cli::from_args();
+
+    let mut proxy = SimpleProxy::new(args.port, Environment::Development);
     let logger = Logger::new();
-    let cors = Cors::new(
-        "*",
-        "GET, POST, PATCH, DELETE, OPTIONS",
-        "Content-Type, Accept, Authorization, X-Requested-Ids, X-Tenant",
-    );
 
     // Order matters
     proxy.add_middleware(Box::new(logger));
-    proxy.add_middleware(Box::new(cors));
-    proxy.add_middleware(Box::new(health));
-    proxy.add_middleware(Box::new(router));
-    proxy.add_middleware(Box::new(auth));
 
     // Start proxy
     proxy.run();
 }
-
 ```
 
 ### Custom middleware
