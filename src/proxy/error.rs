@@ -49,10 +49,6 @@ where
     E: Error,
 {
     fn from(err: E) -> MiddlewareError {
-        MiddlewareError::new(
-            String::from(err.description()),
-            None,
-            StatusCode::INTERNAL_SERVER_ERROR,
-        )
+        MiddlewareError::new(err.to_string(), None, StatusCode::INTERNAL_SERVER_ERROR)
     }
 }

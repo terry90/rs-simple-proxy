@@ -7,12 +7,14 @@ extern crate serde_derive;
 pub mod middlewares;
 pub mod proxy;
 
-use futures::future::Future;
 use hyper::server::conn::AddrStream;
 use hyper::service::make_service_fn;
 use hyper::Server;
 use std::fmt;
-use std::sync::{Arc, Mutex};
+use std::{
+    convert::Infallible,
+    sync::{Arc, Mutex},
+};
 
 use crate::proxy::middleware::Middleware;
 use crate::proxy::service::ProxyService;
@@ -64,7 +66,7 @@ impl SimpleProxy {
         }
     }
 
-    pub fn run(&self) {
+    pub async fn run(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let addr = ([0, 0, 0, 0], self.port).into();
 
         info!("Running proxy in {} mode on: {}", self.environment, &addr);
@@ -72,17 +74,18 @@ impl SimpleProxy {
         let middlewares = Arc::clone(&self.middlewares);
         let make_svc = make_service_fn(move |socket: &AddrStream| {
             let remote_addr = socket.remote_addr();
-
+            let middlewares = middlewares.clone();
             debug!("Handling connection for IP: {}", &remote_addr);
 
-            ProxyService::new(middlewares.clone(), remote_addr)
+            async move { Ok::<_, Infallible>(ProxyService::new(middlewares, remote_addr)) }
         });
 
-        let server = Server::bind(&addr)
-            .serve(make_svc)
-            .map_err(|e| eprintln!("server error: {}", e));
+        let server = Server::bind(&addr).serve(make_svc);
 
-        hyper::rt::run(server);
+        if let Err(e) = server.await {
+            eprintln!("server error: {}", e);
+        }
+        Ok(())
     }
 
     pub fn add_middleware(&mut self, middleware: Box<dyn Middleware + Send + Sync>) {

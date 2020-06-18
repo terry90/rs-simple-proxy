@@ -3,7 +3,7 @@ use crate::proxy::service::{ServiceContext, State};
 use hyper::{Body, Error, Request, Response};
 
 pub enum MiddlewareResult {
-    RespondWith(Response<Body>),
+    RespondWith(Response<hyper::Body>),
     Next,
 }
 
