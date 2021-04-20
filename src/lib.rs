@@ -46,7 +46,9 @@ impl std::str::FromStr for Environment {
             "production" => Ok(Environment::Production),
             "staging" => Ok(Environment::Staging),
             "development" => Ok(Environment::Development),
-            _ => Err({ String::from("valid values: production, staging, development") }),
+            _ => Err(String::from(
+                "valid values: production, staging, development",
+            )),
         }
     }
 }

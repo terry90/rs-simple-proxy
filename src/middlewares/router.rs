@@ -142,7 +142,7 @@ impl Middleware for Router {
     }
 }
 
-fn read_routes(config: &RouterConfig) -> RouterRules {
+fn read_routes<T: RouterConfig>(config: &T) -> RouterRules {
     use std::fs::File;
     use std::io::prelude::Read;
 
@@ -159,7 +159,7 @@ fn read_routes(config: &RouterConfig) -> RouterRules {
 }
 
 impl Router {
-    pub fn new(config: &RouterConfig) -> Self {
+    pub fn new<T: RouterConfig>(config: &T) -> Self {
         Router {
             routes: read_routes(config),
             name: String::from("Router"),
